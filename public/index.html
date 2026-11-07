@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080d18">
+  <title>JARVIS AI</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #080d18;
+      color: #e5f3ff;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    header {
+      text-align: center;
+      padding: 25px 0;
+    }
+    h1 {
+      color: #39caff;
+      letter-spacing: 5px;
+    }
+    #status {
+      color: #70d9ff;
+      font-size: 13px;
+    }
+    #chat {
+      height: 55vh;
+      overflow-y: auto;
+      border: 1px solid #174b70;
+      border-radius: 12px;
+      padding: 12px;
+      background: #101a2b;
+    }
+    .msg {
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      white-space: pre-wrap;
+    }
+    .user { background: #174b70; }
+    .bot { background: #202d40; }
+    .controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    input {
+      flex: 1;
+      min-width: 0;
+      padding: 13px;
+      border-radius: 8px;
+      border: 1px solid #39caff;
+      background: #101a2b;
+      color: white;
+    }
+    button {
+      background: #087eae;
+      color: white;
+      border: 0;
+      border-radius: 8px;
+      padding: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>JARVIS AI</h1>
+    <p>Tu asistente inteligente</p>
+    <div id="status">Conectando...</div>
+  </header>
+
+  <div id="chat">
+    <div class="msg bot">
+      Hola. Soy Jarvis. ¿En qué puedo ayudarte?
+    </div>
+  </div>
+
+  <div class="controls">
+    <input id="message" placeholder="Escribe tu mensaje...">
+    <button id="send">Enviar</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('message');
+    const status = document.getElementById('status');
+
+    function addMessage(text, type) {
+      const div = document.createElement('div');
+      div.className = 'msg ' + type;
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function checkServer() {
+      try {
+        const r = await fetch('/api/health');
+        const data = await r.json();
+        status.textContent = data.ok
+          ? 'Servidor conectado'
+          : 'Servidor no disponible';
+      } catch {
+        status.textContent = 'Servidor sin conexión';
+      }
+    }
+
+    async function sendMessage() {
+      const message = input.value.trim();
+      if (!message) return;
+
+      addMessage(message, 'user');
+      input.value = '';
+
+      try {
+        status.textContent = 'Jarvis está pensando...';
+
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({message})
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Error del servidor');
+        }
+
+        addMessage(data.reply, 'bot');
+        status.textContent = 'Conectado';
+      } catch (error) {
+        addMessage(error.message, 'bot');
+        status.textContent = 'Error de conexión';
+      }
+    }
+
+    document.getElementById('send')
+      .addEventListener('click', sendMessage);
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    checkServer();
+  </script>
+</body>
+</html>
